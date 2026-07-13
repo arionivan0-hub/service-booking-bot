@@ -24,7 +24,7 @@ def _skip_keyboard() -> InlineKeyboardMarkup:
 async def start_registration(message: Message, state: FSMContext) -> None:
     await state.set_state(RegistrationState.name)
     await message.answer(
-        "Для записи на услуги нам cần знать ваше имя.\n"
+        "Для записи на услуги нам нужно знать ваше имя.\n"
         "Введите ваше имя:"
     )
 
