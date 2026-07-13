@@ -1,8 +1,10 @@
 from aiogram import Router, F
+from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import CommandStart
 
 from database.crud import get_user_by_telegram_id
+from handlers.registration import is_registered, start_registration, RegistrationState
 
 router = Router()
 
@@ -17,22 +19,24 @@ def get_main_menu_keyboard() -> InlineKeyboardMarkup:
 
 
 @router.message(CommandStart())
-async def cmd_start(message: Message) -> None:
+async def cmd_start(message: Message, state: FSMContext) -> None:
     user = await get_user_by_telegram_id(message.from_user.id)
 
     if user is None:
-        text = (
+        await state.set_state(RegistrationState.name)
+        await message.answer(
             f"👋 Добро пожаловать, {message.from_user.first_name}!\n\n"
             "Я бот для записи на услуги автосервиса.\n"
-            "Для начала выберите услугу из меню below."
+            "Для начала давайте познакомимся.\n\n"
+            "Введите ваше имя:"
         )
-    else:
-        text = (
-            f"👋 С возвращением, {user.name}!\n\n"
-            "Чем могу помочь?"
-        )
+        return
 
-    await message.answer(text, reply_markup=get_main_menu_keyboard())
+    await message.answer(
+        f"👋 С возвращением, {user.name}!\n\n"
+        "Чем могу помочь?",
+        reply_markup=get_main_menu_keyboard(),
+    )
 
 
 @router.callback_query(F.data == "back_to_menu")

@@ -9,6 +9,7 @@ from database.crud import (
     create_appointment,
 )
 from services.time_slots import get_free_slots, get_available_dates, format_date_display
+from services.google_sheets import add_appointment_row
 
 router = Router()
 
@@ -120,6 +121,15 @@ async def confirm_booking(callback: CallbackQuery, state: FSMContext) -> None:
     await create_appointment(
         user_id=user.id,
         service_id=data["service_id"],
+        date=data["date"],
+        time_slot=data["time_slot"],
+    )
+
+    add_appointment_row(
+        client_name=user.name,
+        phone=user.phone,
+        service_name=service.name,
+        price=service.price,
         date=data["date"],
         time_slot=data["time_slot"],
     )
