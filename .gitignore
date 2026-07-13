@@ -1,9 +1,41 @@
-__pycache__/
-*.pyc
-*.pyo
-.env
+# Database
+database/bookings.db
 *.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment variables
+.env
+.env.local
+
+# Google credentials
 credentials.json
+
+# MiMoCode
 .mimocode/
-*.lnk
+
+# Architecture notes (local only)
 1.txt
+
+# OS
+.DS_Store
+Thumbs.db
