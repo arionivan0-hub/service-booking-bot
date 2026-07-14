@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Календарь — AutoPro</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; color: #1a1a2e; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 32px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 22px; font-weight: 600; }
+        .header .user { opacity: 0.85; font-size: 13px; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+
+        .tabs { display: flex; gap: 0; margin-bottom: 0; }
+        .tab { padding: 10px 24px; background: #e0e0e0; border-radius: 10px 10px 0 0; cursor: pointer; font-size: 14px; font-weight: 500; text-decoration: none; color: #555; }
+        .tab.active { background: white; color: #667eea; font-weight: 600; }
+
+        .card { background: white; border-radius: 0 12px 12px 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+
+        .cal-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .cal-nav a { text-decoration: none; padding: 6px 16px; border-radius: 6px; background: #f0f2f5; color: #333; font-size: 14px; }
+        .cal-nav a:hover { background: #e0e0e0; }
+        .cal-nav h2 { font-size: 20px; }
+
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .cal-header { text-align: center; padding: 8px; font-size: 12px; font-weight: 600; color: #999; text-transform: uppercase; }
+        .cal-day { min-height: 80px; border: 1px solid #eee; border-radius: 8px; padding: 6px; cursor: pointer; transition: all 0.15s; }
+        .cal-day:hover { border-color: #667eea; background: #f8f9ff; }
+        .cal-day.empty { border: none; background: transparent; cursor: default; }
+        .cal-day.today { border-color: #667eea; background: #f0f0ff; }
+        .cal-day .day-num { font-size: 14px; font-weight: 600; color: #333; }
+        .cal-day .day-weekday { font-size: 11px; color: #999; margin-left: 4px; }
+        .cal-day .booked-count { margin-top: 6px; }
+        .cal-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: #667eea; color: white; }
+        .cal-day.saturday .day-num { color: #e67e22; }
+        .cal-day.sunday { opacity: 0.4; cursor: default; }
+        .cal-day.sunday:hover { border-color: #eee; background: transparent; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>AutoPro — Календарь</h1>
+        <div class="user">{{ username }}</div>
+    </div>
+    <div class="container">
+        <div class="tabs">
+            <a href="/" class="tab">Записи</a>
+            <a href="/?tab=services" class="tab">Услуги</a>
+            <a href="/?tab=users" class="tab">Клиенты</a>
+            <a href="/calendar" class="tab active">Календарь</a>
+        </div>
+        <div class="card">
+            <div class="cal-nav">
+                <a href="/calendar?year={{ prev_year }}&month={{ prev_month }}">&larr; Назад</a>
+                <h2>{{ month_name }} {{ year }}</h2>
+                <a href="/calendar?year={{ next_year }}&month={{ next_month }}">Вперёд &rarr;</a>
+            </div>
+            <div class="cal-grid">
+                {% for wd in weekdays %}
+                <div class="cal-header">{{ wd }}</div>
+                {% endfor %}
+
+                {% for _ in range(start_weekday) %}
+                <div class="cal-day empty"></div>
+                {% endfor %}
+
+                {% for day in range(1, days_in_month + 1) %}
+                {% set date_str = "%04d-%02d-%02d"|format(year, month, day) %}
+                {% set is_today = (now.year == year and now.month == month and now.day == day) %}
+                {% set is_sunday = (((start_weekday + day - 1) % 7) == 6) %}
+                {% set is_saturday = (((start_weekday + day - 1) % 7) == 5) %}
+                {% set cnt = booked_map.get(date_str, 0) %}
+                <div class="cal-day {{ 'today' if is_today }} {{ 'sunday' if is_sunday }} {{ 'saturday' if is_saturday }}"
+                     {% if not is_sunday %}onclick="window.location='/calendar/day?date={{ date_str }}'"{% endif %}>
+                    <span class="day-num">{{ day }}</span>
+                    {% if cnt > 0 %}
+                    <div class="booked-count"><span class="cal-badge">{{ cnt }}</span></div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

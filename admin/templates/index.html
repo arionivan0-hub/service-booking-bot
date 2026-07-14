@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoPro — Админ-панель</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; color: #1a1a2e; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 32px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 22px; font-weight: 600; }
+        .header .user { opacity: 0.85; font-size: 13px; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+        .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: white; border-radius: 10px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); text-align: center; }
+        .stat-card .number { font-size: 28px; font-weight: 700; }
+        .stat-card .label { font-size: 12px; color: #888; margin-top: 2px; }
+        .stat-active .number { color: #27ae60; }
+        .stat-cancelled .number { color: #e74c3c; }
+        .stat-completed .number { color: #3498db; }
+        .stat-total .number { color: #667eea; }
+        .stat-revenue .number { color: #f39c12; }
+
+        .tabs { display: flex; gap: 0; margin-bottom: 0; }
+        .tab { padding: 10px 24px; background: #e0e0e0; border-radius: 10px 10px 0 0; cursor: pointer; font-size: 14px; font-weight: 500; text-decoration: none; color: #555; }
+        .tab.active { background: white; color: #667eea; font-weight: 600; box-shadow: 0 -2px 4px rgba(0,0,0,0.05); }
+
+        .card { background: white; border-radius: 0 12px 12px 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 20px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+        .card-header h2 { font-size: 16px; }
+
+        .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .filter-btn { padding: 5px 14px; border-radius: 20px; font-size: 12px; border: 1px solid #ddd; background: white; cursor: pointer; text-decoration: none; color: #555; }
+        .filter-btn.active { background: #667eea; color: white; border-color: #667eea; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 8px 10px; font-size: 11px; text-transform: uppercase; color: #999; border-bottom: 2px solid #eee; }
+        td { padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+        tr:hover { background: #fafbff; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .badge-active { background: #d4edda; color: #155724; }
+        .badge-cancelled { background: #f8d7da; color: #721c24; }
+        .badge-completed { background: #d1ecf1; color: #0c5460; }
+
+        .btn { display: inline-block; padding: 5px 12px; border-radius: 5px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; text-decoration: none; }
+        .btn-sm { padding: 3px 8px; font-size: 11px; }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-warning { background: #f39c12; color: white; }
+        .btn-outline { background: transparent; border: 1px solid #ddd; color: #555; }
+        .btn:hover { opacity: 0.85; }
+        .actions { display: flex; gap: 4px; }
+
+        .form-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; }
+        .form-group { display: flex; flex-direction: column; gap: 3px; }
+        .form-group label { font-size: 11px; color: #999; }
+        .form-group input { padding: 6px 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 13px; width: 120px; }
+        .empty { text-align: center; padding: 24px; color: #bbb; }
+
+        .edit-form { display: none; background: #f8f9ff; padding: 10px; border-radius: 8px; margin-top: 8px; }
+        .edit-form.visible { display: flex; }
+
+        @media (max-width: 768px) {
+            .stats { grid-template-columns: repeat(2, 1fr); }
+            .card-header { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>AutoPro — Админ-панель</h1>
+        <div class="user">{{ username }}</div>
+    </div>
+    <div class="container">
+        <div class="stats">
+            <div class="stat-card stat-active">
+                <div class="number">{{ active_count }}</div>
+                <div class="label">Активных</div>
+            </div>
+            <div class="stat-card stat-cancelled">
+                <div class="number">{{ cancelled_count }}</div>
+                <div class="label">Отменено</div>
+            </div>
+            <div class="stat-card stat-completed">
+                <div class="number">{{ completed_count }}</div>
+                <div class="label">Выполнено</div>
+            </div>
+            <div class="stat-card stat-total">
+                <div class="number">{{ total_count }}</div>
+                <div class="label">Всего записей</div>
+            </div>
+            <div class="stat-card stat-revenue">
+                <div class="number">{{ total_revenue|int }} ₽</div>
+                <div class="label">Выручка</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <a href="/?tab=appointments&status={{ status }}" class="tab {{ 'active' if tab == 'appointments' }}">Записи</a>
+            <a href="/?tab=services" class="tab {{ 'active' if tab == 'services' }}">Услуги</a>
+            <a href="/?tab=users" class="tab {{ 'active' if tab == 'users' }}">Клиенты</a>
+            <a href="/calendar" class="tab">Календарь</a>
+        </div>
+
+        {% if tab == 'appointments' %}
+        <div class="card">
+            <div class="card-header">
+                <h2>Записи</h2>
+                <div class="filters">
+                    <a href="/?tab=appointments&status=all" class="filter-btn {{ 'active' if status == 'all' }}">Все ({{ total_count }})</a>
+                    <a href="/?tab=appointments&status=active" class="filter-btn {{ 'active' if status == 'active' }}">Активные ({{ active_count }})</a>
+                    <a href="/?tab=appointments&status=cancelled" class="filter-btn {{ 'active' if status == 'cancelled' }}">Отменённые ({{ cancelled_count }})</a>
+                    <a href="/?tab=appointments&status=completed" class="filter-btn {{ 'active' if status == 'completed' }}">Выполненные ({{ completed_count }})</a>
+                </div>
+            </div>
+            {% if status == 'cancelled' or status == 'completed' %}
+            <form method="post" action="/appointments/cleanup" style="margin-bottom:12px" onsubmit="return confirm('Удалить ВСЕ {{ status }} записи? Это необратимо!')">
+                <input type="hidden" name="status" value="{{ status }}">
+                <button class="btn btn-danger" type="submit">Удалить все {{ 'отменённые' if status == 'cancelled' else 'выполненные' }}</button>
+            </form>
+            {% endif %}
+            {% if appointments %}
+            <table>
+                <thead>
+                    <tr><th>Клиент</th><th>Телефон</th><th>Услуга</th><th>Цена</th><th>Дата</th><th>Время</th><th>Статус</th><th>Записан</th><th>Отменён/Выполнен</th><th></th></tr>
+                </thead>
+                <tbody>
+                    {% for appt in appointments %}
+                    <tr>
+                        <td><strong>{{ appt.user_name }}</strong></td>
+                        <td>{{ appt.phone }}</td>
+                        <td>{{ appt.service_name }}</td>
+                        <td>{{ appt.price }} ₽</td>
+                        <td>{{ appt.date }}</td>
+                        <td>{{ appt.time_slot }}</td>
+                        <td>
+                            {% if appt.status == 'active' %}<span class="badge badge-active">Активна</span>
+                            {% elif appt.status == 'cancelled' %}<span class="badge badge-cancelled">Отменена</span>
+                            {% else %}<span class="badge badge-completed">Выполнена</span>{% endif %}
+                        </td>
+                        <td style="color:#999;font-size:11px">{{ appt.created_at.strftime('%d.%m %H:%M') if appt.created_at else '' }}</td>
+                        <td style="color:#999;font-size:11px">
+                            {% if appt.cancelled_at %}Отмена: {{ appt.cancelled_at.strftime('%d.%m %H:%M') }}
+                            {% elif appt.completed_at %}Выполнено: {{ appt.completed_at.strftime('%d.%m %H:%M') }}
+                            {% endif %}
+                        </td>
+                        <td class="actions">
+                            {% if appt.status == 'active' %}
+                            <form method="post" action="/appointments/{{ appt.id }}/complete" style="display:inline"><button class="btn btn-success btn-sm" type="submit">OK</button></form>
+                            <form method="post" action="/appointments/{{ appt.id }}/cancel" style="display:inline"><button class="btn btn-danger btn-sm" type="submit" onclick="return confirm('Отменить запись?')">X</button></form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty">Нет записей</div>
+            {% endif %}
+        </div>
+
+        {% elif tab == 'services' %}
+        <div class="card">
+            <div class="card-header">
+                <h2>Услуги</h2>
+            </div>
+            {% if services %}
+            <table>
+                <thead><tr><th>ID</th><th>Название</th><th>Цена</th><th>Длительность</th><th></th></tr></thead>
+                <tbody>
+                    {% for svc in services %}
+                    <tr>
+                        <td>{{ svc.id }}</td>
+                        <td><strong>{{ svc.name }}</strong></td>
+                        <td>{{ svc.price|int }} ₽</td>
+                        <td>{{ svc.duration }} мин</td>
+                        <td class="actions">
+                            <button class="btn btn-warning btn-sm" onclick="toggleEdit('svc-{{ svc.id }}')">Ред.</button>
+                            <form method="post" action="/services/{{ svc.id }}/delete" style="display:inline">
+                                <button class="btn btn-danger btn-sm" type="submit" onclick="return confirm('Удалить «{{ svc.name }}»?')">Удалить</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr><td colspan="5" style="padding:0">
+                        <div id="svc-{{ svc.id }}" class="edit-form">
+                            <form method="post" action="/services/{{ svc.id }}/edit" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+                                <div class="form-group"><label>Название</label><input type="text" name="name" value="{{ svc.name }}" required></div>
+                                <div class="form-group"><label>Цена (₽)</label><input type="number" name="price" value="{{ svc.price|int }}" required></div>
+                                <div class="form-group"><label>Длительность (мин)</label><input type="number" name="duration" value="{{ svc.duration }}" required></div>
+                                <div class="form-group"><button class="btn btn-success btn-sm" type="submit">Сохранить</button></div>
+                            </form>
+                        </div>
+                    </td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty">Нет услуг</div>
+            {% endif %}
+            <form method="post" action="/services/add">
+                <div class="form-row">
+                    <div class="form-group"><label>Название</label><input type="text" name="name" required placeholder="Новая услуга"></div>
+                    <div class="form-group"><label>Цена (₽)</label><input type="number" name="price" required placeholder="0"></div>
+                    <div class="form-group"><label>Длительность (мин)</label><input type="number" name="duration" required placeholder="60"></div>
+                    <div class="form-group"><button class="btn btn-success" type="submit">Добавить</button></div>
+                </div>
+            </form>
+        </div>
+
+        {% elif tab == 'users' %}
+        <div class="card">
+            <div class="card-header">
+                <h2>Клиенты</h2>
+            </div>
+            {% if users %}
+            <table>
+                <thead><tr><th>ID</th><th>Telegram ID</th><th>Имя</th><th>Телефон</th><th>Записей</th></tr></thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td><code>{{ user.telegram_id }}</code></td>
+                        <td><strong>{{ user.name }}</strong></td>
+                        <td>{{ user.phone }}</td>
+                        <td>-</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty">Нет клиентов</div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    <script>
+        function toggleEdit(id) {
+            var el = document.getElementById(id);
+            el.classList.toggle('visible');
+        }
+    </script>
+</body>
+</html>

@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-from sqlalchemy import BigInteger, String, Integer, Float, ForeignKey, DateTime
+from sqlalchemy import BigInteger, String, Integer, Float, ForeignKey, DateTime, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .engine import Base
@@ -36,6 +36,9 @@ class Service(Base):
 
 class Appointment(Base):
     __tablename__ = "appointments"
+    __table_args__ = (
+        UniqueConstraint("date", "time_slot", "service_id", "status", name="uq_active_booking"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
@@ -43,7 +46,9 @@ class Appointment(Base):
     date: Mapped[str] = mapped_column(String(10), nullable=False, comment="Формат YYYY-MM-DD")
     time_slot: Mapped[str] = mapped_column(String(5), nullable=False, comment="Формат HH:MM")
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="active", comment="active / cancelled / completed")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), server_default=func.now())
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=None)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=None)
 
     user: Mapped["User"] = relationship(back_populates="appointments")
     service: Mapped["Service"] = relationship(back_populates="appointments")

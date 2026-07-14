@@ -1,103 +1,111 @@
-# Service Booking Bot
+# Telegram-бот записи в автосервис
 
-Telegram-бот для записи клиентов на услуги автосервиса. Построен на aiogram 3.x с использованием SQLAlchemy и Google Sheets.
+Бот для записи на услуги автосервиса с админ-панелью.
 
-## Возможности
+## Стек
 
-- **Регистрация пользователя** — имя и телефон собираются при первом запуске
-- **Выбор услуги** — список услуг с ценами и длительностью
-- **Выбор даты и времени** — ближайшие 7 дней, свободные слоты 09:00–18:00
-- **Подтверждение записи** — саммари перед сохранением
-- **Мои записи** — просмотр активных записей с возможностью отмены
-- **Контакты** — адрес, телефон, часы работы
-- **Google Sheets** — автоматическая выгрузка записей в таблицу
+- Python 3.12 + aiogram 3
+- PostgreSQL 16 (asyncpg)
+- Redis 7 (FSM storage)
+- FastAPI (админ-панель)
+- Docker Compose
 
-## Структура проекта
+## Быстрый старт
 
-```
-service-booking-bot/
-├── bot.py                      # Точка входа
-├── config.py                   # Конфигурация (токен, БД, Google API)
-├── requirements.txt            # Зависимости
-├── database/
-│   ├── engine.py               # AsyncEngine + sessionmaker
-│   ├── models.py               # User, Service, Appointment
-│   └── crud.py                 # Функции работы с БД
-├── handlers/
-│   ├── menu.py                 # /start, главное меню
-│   ├── registration.py         # FSM-регистрация (имя + телефон)
-│   ├── services.py             # Выбор услуги
-│   ├── booking.py              # FSM-сценарий бронирования
-│   ├── my_appointments.py      # Просмотр / отмена записей
-│   └── contacts.py             # Контакты автосервиса
-└── services/
-    ├── google_sheets.py        # Интеграция с Google Sheets
-    └── time_slots.py           # Генерация свободных слотов
-```
-
-## Установка и запуск
-
-### 1. Клонировать репозиторий
+### 1. Настройка .env
 
 ```bash
-git clone https://github.com/arionivan0-hub/service-booking-bot.git
-cd service-booking-bot
+cp .env.example .env
+# Отредактируйте .env:
+# - BOT_TOKEN: токен бота от @BotFather
+# - ADMIN_IDS: ваш Telegram ID (через запятую)
 ```
 
-### 2. Установить зависимости
+### 2. Запуск
 
 ```bash
-pip install -r requirements.txt
+docker compose up -d --build
 ```
 
-### 3. Настроить переменные окружения
-
-Создайте файл `.env` в корне проекта:
-
-```env
-BOT_TOKEN=ваш_токен_от_BotFather
-DATABASE_URL=sqlite+aiosqlite:///database/bookings.db
-GOOGLE_SHEET_ID=id_вашей_таблицы
-GOOGLE_CREDENTIALS_FILE=credentials.json
-```
-
-Или задайте переменные в системе:
+### 3. Проверка
 
 ```bash
-# Windows (PowerShell)
-$env:BOT_TOKEN="ваш_токен"
+# Логи бота
+docker compose logs bot --tail -f
 
-# Linux/macOS
-export BOT_TOKEN="ваш_токен"
+# Бот запущен когда видно:
+# "Starting bot polling..."
 ```
 
-### 4. Настроить Google Sheets (опционально)
+## Команды бота
 
-1. Создайте проект в [Google Cloud Console](https://console.cloud.google.com)
-2. Включите **Google Sheets API** и **Google Drive API**
-3. Создайте **Service Account** и скачайте JSON-ключ как `credentials.json`
-4. Создайте Google Таблицу и скопируйте её ID из URL
-5. Расшарьте таблицу на email сервис-аккаунта (с правами редактора)
+| Команда | Описание |
+|---------|----------|
+| `/start` | Главное меню / регистрация |
+| `/help` | Список команд |
+| `/cancel` | Отмена текущего действия |
+| `/admin` | Админ-панель (только для ADMIN_IDS) |
+| `/stats` | Статистика (админ) |
 
-### 5. Запустить бота
+## Конфигурация (.env)
+
+| Переменная | По умолчанию | Описание |
+|------------|-------------|----------|
+| `BOT_TOKEN` | - | Токен Telegram бота (обязательно) |
+| `DATABASE_URL` | sqlite... | URL PostgreSQL |
+| `REDIS_URL` | redis://redis:6379/0 | URL Redis |
+| `ADMIN_IDS` | - | Telegram ID администраторов (через запятую) |
+| `WORK_START` | 9 | Начало рабочего дня |
+| `WORK_END` | 18 | Конец рабочего дня |
+| `SAT_WORK_END` | 14 | Конец рабочего дня в субботу |
+| `SUNDAY_CLOSED` | true | Выходной в воскресенье |
+| `TZ_OFFSET` | 3 | Часовой пояс (часы от UTC) |
+| `BOOKING_AHEAD_DAYS` | 14 | На сколько дней вперёд можно записаться |
+| `REMINDER_HOURS` | 24,2 | Напоминания (часы до визита) |
+
+## Архитектура
+
+```
+bot.py              -- точка входа, настройка бота
+config.py           -- конфигурация из .env
+database/
+  models.py         -- SQLAlchemy модели (User, Service, Appointment)
+  crud.py           -- запросы к БД
+  engine.py         -- подключение к БД
+handlers/
+  keyboards.py      -- общие клавиатуры
+  menu.py           -- главное меню
+  registration.py   -- регистрация / профиль
+  services.py       -- выбор услуги
+  booking.py        -- бронирование (выбор даты/времени/подтверждение)
+  my_appointments.py -- просмотр/отмена/перенос записей
+  contacts.py       -- контакты
+  admin.py          -- админ-команды
+middleware/
+  auth.py           -- проверка пользователя в БД
+  rate_limit.py     -- anti-spam
+services/
+  time_slots.py     -- расчёт свободных слотов
+  notifications.py  -- напоминания (APScheduler)
+tests/
+  test_time_slots.py -- unit-тесты
+```
+
+## Перезапуск
 
 ```bash
-python bot.py
+# Полный пересбор
+docker compose up -d --build
+
+# Только перезапуск (без пересбора)
+docker compose restart bot
+
+# Логи в реальном времени
+docker compose logs bot -f
 ```
 
-При первом запуске автоматически:
-- Создаются таблицы SQLite (users, services, appointments)
-- Заполняются 5 стандартных услуг
+## Админ-панель
 
-## Используемые технологии
+Доступна на `http://localhost:9090` (порт из docker-compose.yml).
 
-| Компонент | Технология |
-|-----------|-----------|
-| Telegram Bot API | aiogram 3.x |
-| База данных | SQLAlchemy 2.0 (async) + SQLite |
-| Google Sheets | gspread + google-auth |
-| Хранение FSM | aiogram FSM (MemoryStorage) |
-
-## Лицензия
-
-MIT
+Логин/пароль: `ADMIN_USER` / `ADMIN_PASS` из .env.

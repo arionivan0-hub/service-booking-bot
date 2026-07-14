@@ -4,6 +4,7 @@ from aiogram.fsm.context import FSMContext
 
 from database.crud import get_all_services
 from handlers.booking import BookingState
+from handlers.keyboards import get_main_menu_keyboard
 
 router = Router()
 
@@ -12,13 +13,21 @@ router = Router()
 async def show_services(callback: CallbackQuery) -> None:
     services = await get_all_services()
 
+    if not services:
+        await callback.message.edit_text(
+            "К сожалению, услуги пока не добавлены.",
+            reply_markup=get_main_menu_keyboard(),
+        )
+        await callback.answer()
+        return
+
     buttons = []
     for svc in services:
-        text = f"{svc.name}  —  {int(svc.price)} ₽, {svc.duration} мин"
+        text = f"{svc.name}  -  {int(svc.price)} \u20bd, {svc.duration} мин"
         buttons.append(
             [InlineKeyboardButton(text=text, callback_data=f"svc:{svc.id}")]
         )
-    buttons.append([InlineKeyboardButton(text="◀ Назад", callback_data="back_to_menu")])
+    buttons.append([InlineKeyboardButton(text="Назад", callback_data="back_to_menu")])
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
 
