@@ -1,22 +1,19 @@
-import asyncio
+import sys
+import os
 import pytest
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
 from database.engine import Base
 from database.models import User, Service, Appointment
 
 
-TEST_DB_URL = "sqlite+aiosqlite:///file::memory:?cache=shared&uri=true"
+TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
-
-@pytest.fixture(scope="session")
+@pytest.fixture
 async def engine():
     eng = create_async_engine(TEST_DB_URL, echo=False)
     async with eng.begin() as conn:
@@ -28,9 +25,9 @@ async def engine():
 @pytest.fixture
 async def session(engine):
     session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    async with session_factory() as session:
-        yield session
-        await session.rollback()
+    async with session_factory() as sess:
+        yield sess
+        await sess.rollback()
 
 
 @pytest.fixture
